@@ -1,4 +1,4 @@
-package nabu.modules.cluster;
+package nabu.utils;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -19,7 +19,7 @@ import be.nabu.eai.module.cluster.ClusterArtifact;
 import be.nabu.eai.repository.EAIResourceRepository;
 
 @WebService
-public class Services {
+public class Cluster {
 	
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	
