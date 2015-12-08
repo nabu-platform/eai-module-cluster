@@ -22,7 +22,7 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 
 	@Override
 	protected ClusterArtifact newInstance(MainController controller, RepositoryEntry entry, Value<?>... values) throws IOException {
-		return new ClusterArtifact(entry.getId(), entry.getContainer());
+		return new ClusterArtifact(entry.getId(), entry.getContainer(), entry.getRepository());
 	}
 
 }

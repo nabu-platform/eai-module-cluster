@@ -6,6 +6,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -16,23 +17,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.module.cluster.ClusterArtifact;
-import be.nabu.eai.repository.EAIResourceRepository;
+import be.nabu.libs.services.ListableServiceContext;
+import be.nabu.libs.services.api.ExecutionContext;
 
 @WebService
 public class Cluster {
 	
 	private Logger logger = LoggerFactory.getLogger(getClass());
+	private ExecutionContext executionContext;
 	
-	@WebResult(name = "clusterId")
-	public String getCurrentCluster() throws SocketException {
-		ClusterArtifact ownCluster = getOwnCluster();
-		return ownCluster == null ? null : ownCluster.getId();
+	public Cluster() {
+		// auto construct
 	}
 	
+	public Cluster(ExecutionContext executionContext) {
+		this.executionContext = executionContext;
+	}
+	
+	@WebResult(name = "clusterId")
+	public String getCurrentCluster() {
+		try {
+			ClusterArtifact ownCluster = getOwnCluster();
+			return ownCluster == null ? null : ownCluster.getId();
+		}
+		catch (SocketException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private ClusterArtifact getOwnCluster() throws SocketException {
-		List<ClusterArtifact> artifacts = EAIResourceRepository.getInstance().getArtifacts(ClusterArtifact.class);
+		return getClusterFor(getLocalAddresses());
+	}
+
+	private ClusterArtifact getClusterFor(List<String> localAddresses) throws SocketException {
+		Collection<ClusterArtifact> artifacts = ((ListableServiceContext) executionContext.getServiceContext()).getArtifacts(ClusterArtifact.class);
 		if (artifacts != null && !artifacts.isEmpty()) {
-			List<String> localAddresses = getLocalAddresses();
 			for (ClusterArtifact artifact : artifacts) {
 				try {
 					if (artifact.getConfiguration().getHosts() != null) {

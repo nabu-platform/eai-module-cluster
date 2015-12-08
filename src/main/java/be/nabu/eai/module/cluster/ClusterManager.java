@@ -12,7 +12,7 @@ public class ClusterManager extends JAXBArtifactManager<ClusterConfiguration, Cl
 
 	@Override
 	protected ClusterArtifact newInstance(String id, ResourceContainer<?> container, Repository repository) {
-		return new ClusterArtifact(id, container);
+		return new ClusterArtifact(id, container, repository);
 	}
 
 }
