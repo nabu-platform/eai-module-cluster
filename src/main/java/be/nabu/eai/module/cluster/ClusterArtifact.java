@@ -16,7 +16,7 @@ import be.nabu.libs.resources.api.ResourceContainer;
 
 public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 
-	private ResourceRepository repository;
+	private ResourceRepository clusterRepository;
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private ServerConnection connection;
 	
@@ -25,18 +25,18 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	}
 
 	public boolean isLoaded() {
-		return repository != null;
+		return clusterRepository != null;
 	}
 	
 	public void reload() {
-		repository = null;
+		clusterRepository = null;
 	}
 	
-	public ResourceRepository getRepository() {
+	public ResourceRepository getClusterRepository() {
 		URI mainURI = ResourceUtils.getURI(EAIResourceRepository.getInstance().getRoot().getContainer());
-		if (repository == null) {
+		if (clusterRepository == null) {
 			synchronized(this) {
-				if (repository == null) {
+				if (clusterRepository == null) {
 					try {
 						if (getConfiguration().getHosts().size() > 0) {
 							// we take the first host
@@ -45,11 +45,11 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 							connection = new ServerConnection(index < 0 ? string : string.substring(0, index), index < 0 ? 5555 : Integer.parseInt(string.substring(index + 1)));
 							URI root = connection.getRepositoryRoot();
 							if (mainURI.equals(root)) {
-								repository = EAIResourceRepository.getInstance();
+								clusterRepository = EAIResourceRepository.getInstance();
 							}
 							else {
-								repository = new RemoteRepository(EAIResourceRepository.getInstance(), (ResourceContainer<?>) ResourceFactory.getInstance().resolve(root, null));
-								repository.start();
+								clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), (ResourceContainer<?>) ResourceFactory.getInstance().resolve(root, null));
+								clusterRepository.start();
 							}
 						}
 					}
@@ -59,7 +59,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 				}
 			}
 		}
-		return repository;
+		return clusterRepository;
 	}
 	
 }
