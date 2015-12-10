@@ -43,6 +43,7 @@ public class RemoteRepository implements ResourceRepository {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Map<String, List<String>> references = new HashMap<String, List<String>>(), dependencies = new HashMap<String, List<String>>();
 	private boolean isLoading;
+	private boolean allowLocalLookup;
 
 	public RemoteRepository(ResourceRepository local, ResourceContainer<?> root) {
 		this.local = local;
@@ -56,7 +57,11 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public Entry getEntry(String id) {
-		return EAIRepositoryUtils.getEntry(getRoot(), id);
+		Entry entry = EAIRepositoryUtils.getEntry(getRoot(), id);
+		if (entry == null && allowLocalLookup) {
+			entry = local.getEntry(id);
+		}
+		return entry;
 	}
 
 	@Override
@@ -166,6 +171,7 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public List<Node> getNodes(Class<? extends Artifact> artifactClazz) {
+		// TODO: allow local lookup!!
 		if (nodesByType == null) {
 			scanForTypes();
 		}
@@ -190,12 +196,28 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public List<String> getReferences(String id) {
-		return references.containsKey(id) ? new ArrayList<String>(references.get(id)) : new ArrayList<String>();
+		if (references.containsKey(id)) {
+			return new ArrayList<String>(references.get(id));
+		}
+		else if (allowLocalLookup) {
+			return local.getReferences(id);
+		}
+		else {
+			return new ArrayList<String>(); 
+		}
 	}
 
 	@Override
 	public List<String> getDependencies(String id) {
-		return dependencies.containsKey(id) ? new ArrayList<String>(dependencies.get(id)) : new ArrayList<String>();
+		if (dependencies.containsKey(id)) {
+			return new ArrayList<String>(dependencies.get(id));
+		}
+		else if (allowLocalLookup) {
+			return local.getDependencies(id);
+		}
+		else {
+			return new ArrayList<String>(); 
+		}
 	}
 
 	@Override
@@ -297,7 +319,11 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public Artifact resolve(String id) {
-		return EAIRepositoryUtils.resolve(this, id);
+		Artifact resolve = EAIRepositoryUtils.resolve(this, id);
+		if (resolve == null && allowLocalLookup) {
+			resolve = local.resolve(id);
+		}
+		return resolve;
 	}
 
 	@Override
@@ -376,7 +402,26 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public <T extends Artifact> List<T> getArtifacts(Class<T> artifactClazz) {
-		return EAIRepositoryUtils.getArtifacts(this, artifactClazz);
+		List<T> artifacts = EAIRepositoryUtils.getArtifacts(this, artifactClazz);
+		if (allowLocalLookup) {
+			List<String> ids = new ArrayList<String>();
+			for (T artifact : artifacts) {
+				ids.add(artifact.getId());
+			}
+			for (T artifact : local.getArtifacts(artifactClazz)) {
+				if (!ids.contains(artifact.getId())) {
+					artifacts.add(artifact);
+				}
+			}
+		}
+		return artifacts;
 	}
 
+	public boolean isAllowLocalLookup() {
+		return allowLocalLookup;
+	}
+
+	public void setAllowLocalLookup(boolean allowLocalLookup) {
+		this.allowLocalLookup = allowLocalLookup;
+	}
 }
