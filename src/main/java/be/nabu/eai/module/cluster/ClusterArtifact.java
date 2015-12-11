@@ -62,4 +62,45 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 		return clusterRepository;
 	}
 	
+	public void reloadAll() {
+		try {
+			if (getConfiguration().getHosts() != null) {
+				for (String host : getConfiguration().getHosts()) {
+					logger.info("Reloading all on " + host);
+					try {
+						int index = host.indexOf(':');
+						ServerConnection connection = new ServerConnection(index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						connection.getRemote().reloadAll();
+					}
+					catch (Exception e) {
+						logger.error("Could not reload all on server: " + host, e);
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public void reload(String id) {
+		try {
+			if (getConfiguration().getHosts() != null) {
+				for (String host : getConfiguration().getHosts()) {
+					logger.info("Reloading " + id + " on " + host);
+					try {
+						int index = host.indexOf(':');
+						ServerConnection connection = new ServerConnection(index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						connection.getRemote().reload(id);
+					}
+					catch (Exception e) {
+						logger.error("Could not reload '" + id + "' on server: " + host, e);
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

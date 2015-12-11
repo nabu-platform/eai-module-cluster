@@ -149,11 +149,12 @@ public class RemoteRepository implements ResourceRepository {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void unload(Entry entry) {
+		entry.refresh(false);
 		reset();
 		if (entry.isNode()) {
 			unbuildReferenceMap(entry.getId());
 			// if there is an artifact manager and it maintains a repository, remove it all
-			if (entry.getNode().getArtifactManager() != null && ArtifactRepositoryManager.class.isAssignableFrom(entry.getNode().getArtifactManager())) {
+			if (entry.getNode().isLoaded() && entry.getNode().getArtifactManager() != null && ArtifactRepositoryManager.class.isAssignableFrom(entry.getNode().getArtifactManager())) {
 				try {
 					((ArtifactRepositoryManager) entry.getNode().getArtifactManager().newInstance()).removeChildren((ModifiableEntry) entry, entry.getNode().getArtifact());
 				}
@@ -300,10 +301,13 @@ public class RemoteRepository implements ResourceRepository {
 	private void loadArtifactManager(Entry entry) {
 		logger.debug("Loading children of: " + entry.getId());
 		try {
-			List<Entry> addedChildren = ((ArtifactRepositoryManager) entry.getNode().getArtifactManager().newInstance()).addChildren((ModifiableEntry) entry, entry.getNode().getArtifact());
-			if (addedChildren != null) {
-				for (Entry addedChild : addedChildren) {
-					buildReferenceMap(addedChild.getId(), addedChild.getNode().getReferences());
+			Artifact artifact = entry.getNode().getArtifact();
+			if (artifact != null) {
+				List<Entry> addedChildren = ((ArtifactRepositoryManager) entry.getNode().getArtifactManager().newInstance()).addChildren((ModifiableEntry) entry, artifact);
+				if (addedChildren != null) {
+					for (Entry addedChild : addedChildren) {
+						buildReferenceMap(addedChild.getId(), addedChild.getNode().getReferences());
+					}
 				}
 			}
 		}
@@ -424,4 +428,14 @@ public class RemoteRepository implements ResourceRepository {
 	public void setAllowLocalLookup(boolean allowLocalLookup) {
 		this.allowLocalLookup = allowLocalLookup;
 	}
+	
+	@Override
+	public void reloadAll() {
+		unload(getRoot());
+		references.clear();
+		dependencies.clear();
+		reset();
+		load(getRoot());
+	}
+
 }
