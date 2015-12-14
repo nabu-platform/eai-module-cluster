@@ -42,7 +42,8 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 							// we take the first host
 							String string = getConfiguration().getHosts().get(0);
 							int index = string.indexOf(':');
-							connection = new ServerConnection(index < 0 ? string : string.substring(0, index), index < 0 ? 5555 : Integer.parseInt(string.substring(index + 1)));
+							// TODO: perhaps set keystore & principal?
+							connection = new ServerConnection(null, null, index < 0 ? string : string.substring(0, index), index < 0 ? 5555 : Integer.parseInt(string.substring(index + 1)));
 							URI root = connection.getRepositoryRoot();
 							if (mainURI.equals(root)) {
 								clusterRepository = EAIResourceRepository.getInstance();
@@ -69,7 +70,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 					logger.info("Reloading all on " + host);
 					try {
 						int index = host.indexOf(':');
-						ServerConnection connection = new ServerConnection(index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
 						connection.getRemote().reloadAll();
 					}
 					catch (Exception e) {
@@ -90,7 +91,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 					logger.info("Reloading " + id + " on " + host);
 					try {
 						int index = host.indexOf(':');
-						ServerConnection connection = new ServerConnection(index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
 						connection.getRemote().reload(id);
 					}
 					catch (Exception e) {
