@@ -6,6 +6,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -96,10 +97,12 @@ public class RemoteRepository implements ResourceRepository {
 			getRoot().refresh(false);
 			entry = getEntry(id);
 		}
-		while (entry == null && id.contains(".")) {
-			int index = id.lastIndexOf('.');
-			id = id.substring(0, index);
-			entry = getEntry(id);
+		if (recursiveReload) {
+			while (entry == null && id.contains(".")) {
+				int index = id.lastIndexOf('.');
+				id = id.substring(0, index);
+				entry = getEntry(id);
+			}
 		}
 		if (entry != null) {
 			unload(entry);
@@ -107,17 +110,31 @@ public class RemoteRepository implements ResourceRepository {
 			// also reload all the dependencies
 			// prevent concurrent modification
 			if (recursiveReload) {
-				Set<String> dependenciesToReload = calculateDependenciesToReload(entry.getId());
+				Set<String> dependenciesToReload = calculateDependenciesToReload(entry);
 				for (String dependency : dependenciesToReload) {
 					reload(dependency, false);
 				}
 			}
 		}
 		if (recursiveReload) {
-			// TODO: remove
 			EAIResourceRepository.getInstance().reattachMavenArtifacts(root);
 			getEventDispatcher().fire(new RepositoryEvent(RepositoryState.RELOAD, true), this);
 		}
+	}
+	
+	private Set<String> calculateDependenciesToReload(Entry entry) {
+		Set<String> dependencies = new HashSet<String>();
+		if (entry.isNode()) {
+			dependencies.addAll(calculateDependenciesToReload(entry.getId()));
+		}
+		if (!entry.isLeaf()) {
+			for (Entry child : entry) {
+				Set<String> calculateDependenciesToReload = calculateDependenciesToReload(child);
+				dependencies.removeAll(calculateDependenciesToReload);
+				dependencies.addAll(calculateDependenciesToReload);
+			}
+		}
+		return dependencies;
 	}
 	
 	private Set<String> calculateDependenciesToReload(String id) {
