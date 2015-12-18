@@ -29,6 +29,7 @@ import be.nabu.eai.repository.resources.RepositoryEntry;
 import be.nabu.libs.artifacts.api.Artifact;
 import be.nabu.libs.events.api.EventDispatcher;
 import be.nabu.libs.events.impl.EventDispatcherImpl;
+import be.nabu.libs.metrics.api.MetricInstance;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.services.api.ExecutionContext;
@@ -453,6 +454,11 @@ public class RemoteRepository implements ResourceRepository {
 		dependencies.clear();
 		reset();
 		load(getRoot());
+	}
+
+	@Override
+	public MetricInstance getMetricInstance(String id) {
+		return null;
 	}
 
 }
