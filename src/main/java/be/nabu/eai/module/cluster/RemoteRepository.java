@@ -5,6 +5,7 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -79,7 +80,11 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public Node getNode(String id) {
-		return EAIRepositoryUtils.getNode(this, id);
+		Node node = EAIRepositoryUtils.getNode(this, id);
+		if (node == null) {
+			node = local.getNode(id);
+		}
+		return node;
 	}
 
 	@Override
@@ -465,6 +470,22 @@ public class RemoteRepository implements ResourceRepository {
 	@Override
 	public <T extends Artifact> ArtifactManager<T> getArtifactManager(Class<T> artifactClass) {
 		return local.getArtifactManager(artifactClass);
+	}
+
+	@Override
+	public void reloadAll(Collection<String> ids) {
+		getEventDispatcher().fire(new RepositoryEvent(RepositoryState.RELOAD, false), this);
+		Set<String> dependenciesToReload = new HashSet<String>();
+		for (String id : ids) {
+			Set<String> calculateDependenciesToReload = calculateDependenciesToReload(id);
+			dependenciesToReload.removeAll(calculateDependenciesToReload);
+			dependenciesToReload.addAll(calculateDependenciesToReload);
+		}
+		for (String id : dependenciesToReload) {
+			reload(id, false);
+		}
+		EAIResourceRepository.getInstance().reattachMavenArtifacts(root);
+		getEventDispatcher().fire(new RepositoryEvent(RepositoryState.RELOAD, true), this);
 	}
 
 }
