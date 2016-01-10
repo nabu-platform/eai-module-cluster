@@ -81,7 +81,7 @@ public class RemoteRepository implements ResourceRepository {
 	@Override
 	public Node getNode(String id) {
 		Node node = EAIRepositoryUtils.getNode(this, id);
-		if (node == null) {
+		if (node == null && allowLocalLookup) {
 			node = local.getNode(id);
 		}
 		return node;
@@ -249,6 +249,7 @@ public class RemoteRepository implements ResourceRepository {
 	public void start() {
 		getEventDispatcher().fire(new RepositoryEvent(RepositoryState.LOAD, false), this);
 		isLoading = true;
+		EAIResourceRepository.getInstance().reattachMavenArtifacts(root);
 		load(getRoot());
 		isLoading = false;
 		// IMPORTANT: this assumes the local server artifacts are in sync with the remote ones!! [IN-SYNC]
