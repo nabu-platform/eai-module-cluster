@@ -1,15 +1,18 @@
 package be.nabu.eai.module.cluster;
 
+import java.io.IOException;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import be.nabu.eai.developer.ServerConnection;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.api.ResourceRepository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
+import be.nabu.eai.server.ServerConnection;
 import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
 import be.nabu.libs.resources.api.ResourceContainer;
@@ -18,7 +21,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 
 	private ResourceRepository clusterRepository;
 	private Logger logger = LoggerFactory.getLogger(getClass());
-	private ServerConnection connection;
+	private Map<String, ServerConnection> connections = new HashMap<String, ServerConnection>();
 	
 	public ClusterArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "cluster.xml", ClusterConfiguration.class);
@@ -40,10 +43,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 					try {
 						if (getConfiguration().getHosts().size() > 0) {
 							// we take the first host
-							String string = getConfiguration().getHosts().get(0);
-							int index = string.indexOf(':');
-							// TODO: perhaps set keystore & principal?
-							connection = new ServerConnection(null, null, index < 0 ? string : string.substring(0, index), index < 0 ? 5555 : Integer.parseInt(string.substring(index + 1)));
+							ServerConnection connection = getConnection(getConfiguration().getHosts().get(0));
 							URI root = connection.getRepositoryRoot();
 							if (mainURI.equals(root)) {
 								clusterRepository = EAIResourceRepository.getInstance();
@@ -61,6 +61,21 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 			}
 		}
 		return clusterRepository;
+	}
+	
+	public ServerConnection getConnection(String host) throws IOException {
+		if (getConfiguration().getHosts() != null && getConfiguration().getHosts().contains(host)) {
+			if (!connections.containsKey(host)) {
+				synchronized(connections) {
+					if (!connections.containsKey(host)) {
+						int index = host.indexOf(':');
+						// TODO: perhaps set keystore & principal?
+						connections.put(host, new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1))));
+					}
+				}
+			}
+		}
+		return connections.get(host);
 	}
 	
 	public void reloadAll() {
@@ -104,4 +119,5 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 			throw new RuntimeException(e);
 		}
 	}
+	
 }

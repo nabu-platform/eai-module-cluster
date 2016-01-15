@@ -1,4 +1,4 @@
-package nabu.utils;
+package nabu.artifacts;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -10,8 +10,10 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.jws.WebParam;
 import javax.jws.WebResult;
 import javax.jws.WebService;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,5 +108,14 @@ public class Cluster {
 			}
 		}
 		return peers;
+	}
+	
+	@WebResult(name = "hosts")
+	public List<String> getHosts(@WebParam(name = "clusterId") @NotNull String clusterId) throws IOException {
+		ClusterArtifact artifact = executionContext.getServiceContext().getResolver(ClusterArtifact.class).resolve(clusterId);
+		if (artifact == null) {
+			throw new IllegalArgumentException("The id is not a cluster: " + clusterId);
+		}
+		return artifact.getConfiguration().getHosts();
 	}
 }
