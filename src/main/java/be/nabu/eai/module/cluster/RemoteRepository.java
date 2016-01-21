@@ -513,4 +513,10 @@ public class RemoteRepository implements ResourceRepository {
 		}
 		return results;	}
 
+	@Override
+	public EventDispatcher getMetricsDispatcher() {
+		// no metrics for remote repository
+		return null;
+	}
+
 }
