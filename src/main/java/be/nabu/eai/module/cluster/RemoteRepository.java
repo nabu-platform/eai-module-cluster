@@ -1,9 +1,7 @@
 package be.nabu.eai.module.cluster;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.Principal;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.repository.EAIRepositoryUtils;
 import be.nabu.eai.repository.EAIResourceRepository;
-import be.nabu.eai.repository.api.ArtifactManager;
 import be.nabu.eai.repository.api.ArtifactRepositoryManager;
 import be.nabu.eai.repository.api.Entry;
 import be.nabu.eai.repository.api.ModifiableEntry;
@@ -195,21 +192,6 @@ public class RemoteRepository implements ResourceRepository {
 	}
 
 	@Override
-	public List<Node> getNodes(Class<? extends Artifact> artifactClazz) {
-		// TODO: allow local lookup!!
-		if (nodesByType == null) {
-			scanForTypes();
-		}
-		List<Node> nodes = new ArrayList<Node>();
-		for (Class<?> clazz : nodesByType.keySet()) {
-			if (artifactClazz.isAssignableFrom(clazz)) {
-				nodes.addAll(nodesByType.get(clazz).values());
-			}
-		}
-		return nodes;
-	}
-
-	@Override
 	public ServiceRunner getServiceRunner() {
 		return local.getServiceRunner();
 	}
@@ -342,8 +324,8 @@ public class RemoteRepository implements ResourceRepository {
 	}
 
 	@Override
-	public ClassLoader newClassLoader(String artifact) {
-		return local.newClassLoader(artifact);
+	public ClassLoader getClassLoader() {
+		return local.getClassLoader();
 	}
 
 	@Override
@@ -362,20 +344,7 @@ public class RemoteRepository implements ResourceRepository {
 
 	@Override
 	public List<DefinedService> getServices() {
-		List<Node> nodes = getNodes(DefinedService.class);
-		List<DefinedService> services = new ArrayList<DefinedService>(nodes.size());
-		for (Node node : nodes) {
-			try {
-				services.add((DefinedService) node.getArtifact());
-			}
-			catch (IOException e) {
-				logger.error("Could not load " + node, e);
-			}
-			catch (ParseException e) {
-				logger.error("Could not load " + node, e);
-			}
-		}
-		return services;
+		return getArtifacts(DefinedService.class);
 	}
 
 	@Override
@@ -424,27 +393,31 @@ public class RemoteRepository implements ResourceRepository {
 		}
 	}
 
-	@Override
-	public <T> List<Class<T>> getImplementationsFor(Class<T> clazz) {
-		return local.getImplementationsFor(clazz);
-	}
-
-	@Override
-	public <T extends Artifact> List<T> getArtifacts(Class<T> artifactClazz) {
-		List<T> artifacts = EAIRepositoryUtils.getArtifacts(this, artifactClazz);
-		if (allowLocalLookup) {
-			List<String> ids = new ArrayList<String>();
-			for (T artifact : artifacts) {
-				ids.add(artifact.getId());
-			}
-			for (T artifact : local.getArtifacts(artifactClazz)) {
-				if (!ids.contains(artifact.getId())) {
-					artifacts.add(artifact);
-				}
-			}
-		}
-		return artifacts;
-	}
+//	@SuppressWarnings("unchecked")
+//	@Override
+//	public <T extends Artifact> List<T> getArtifacts(Class<T> artifactClazz) {
+//		List<T> artifacts = new ArrayList<T>();
+//		for (Node node : getNodes(artifactClazz)) {
+//			try {
+//				artifacts.add((T) node.getArtifact());
+//			}
+//			catch (Exception e) {
+//				logger.error("Could not load node: " + node);
+//			}
+//		}
+//		if (allowLocalLookup) {
+//			List<String> ids = new ArrayList<String>();
+//			for (T artifact : artifacts) {
+//				ids.add(artifact.getId());
+//			}
+//			for (T artifact : local.getArtifacts(artifactClazz)) {
+//				if (!ids.contains(artifact.getId())) {
+//					artifacts.add(artifact);
+//				}
+//			}
+//		}
+//		return artifacts;
+//	}
 
 	public boolean isAllowLocalLookup() {
 		return allowLocalLookup;
@@ -469,11 +442,6 @@ public class RemoteRepository implements ResourceRepository {
 	}
 
 	@Override
-	public <T extends Artifact> ArtifactManager<T> getArtifactManager(Class<T> artifactClass) {
-		return local.getArtifactManager(artifactClass);
-	}
-
-	@Override
 	public void reloadAll(Collection<String> ids) {
 		getEventDispatcher().fire(new RepositoryEvent(RepositoryState.RELOAD, false), this);
 		Set<String> dependenciesToReload = new HashSet<String>();
@@ -491,7 +459,7 @@ public class RemoteRepository implements ResourceRepository {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T> List<T> getArtifactsThatImplement(Class<T> ifaceClass) {
+	public <T> List<T> getArtifacts(Class<T> ifaceClass) {
 		List<T> results = new ArrayList<T>();
 		if (nodesByType == null) {
 			scanForTypes();
@@ -511,7 +479,21 @@ public class RemoteRepository implements ResourceRepository {
 				}
 			}
 		}
-		return results;	}
+		if (allowLocalLookup) {
+			List<String> ids = new ArrayList<String>();
+			for (T artifact : results) {
+				if (artifact instanceof Artifact) {
+					ids.add(((Artifact) artifact).getId());
+				}
+			}
+			for (T artifact : local.getArtifacts(ifaceClass)) {
+				if (!(artifact instanceof Artifact) || !ids.contains(((Artifact) artifact).getId())) {
+					results.add(artifact);
+				}
+			}
+		}
+		return results;
+	}
 
 	@Override
 	public EventDispatcher getMetricsDispatcher() {

@@ -20,6 +20,7 @@ import be.nabu.eai.developer.managers.base.JAXBArtifactDiffer;
 import be.nabu.eai.developer.util.Confirm;
 import be.nabu.eai.developer.util.Confirm.ConfirmType;
 import be.nabu.eai.module.cluster.ClusterArtifact;
+import be.nabu.eai.repository.EAIRepositoryUtils;
 import be.nabu.eai.repository.api.Entry;
 import be.nabu.eai.repository.api.ResourceEntry;
 import be.nabu.eai.repository.api.ResourceRepository;
@@ -78,7 +79,7 @@ public class ClusterContextMenu implements EntryContextMenuProvider {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static ArtifactDiffer<?> getDiffer(Entry entry) {
-		List<Class<ArtifactDiffer>> differs = entry.getRepository().getImplementationsFor(ArtifactDiffer.class);
+		List<Class<ArtifactDiffer>> differs = EAIRepositoryUtils.getImplementationsFor(entry.getRepository().getClassLoader(), ArtifactDiffer.class);
 		for (Class<ArtifactDiffer> differ : differs) {
 			try {
 				ArtifactDiffer instance = differ.newInstance();
