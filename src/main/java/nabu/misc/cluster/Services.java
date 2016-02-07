@@ -1,4 +1,4 @@
-package nabu.artifacts;
+package nabu.misc.cluster;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -23,16 +23,16 @@ import be.nabu.libs.services.ListableServiceContext;
 import be.nabu.libs.services.api.ExecutionContext;
 
 @WebService
-public class Cluster {
+public class Services {
 	
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private ExecutionContext executionContext;
 	
-	public Cluster() {
+	public Services() {
 		// auto construct
 	}
 	
-	public Cluster(ExecutionContext executionContext) {
+	public Services(ExecutionContext executionContext) {
 		this.executionContext = executionContext;
 	}
 	
