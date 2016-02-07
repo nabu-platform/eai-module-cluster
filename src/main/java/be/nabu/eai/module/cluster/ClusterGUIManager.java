@@ -16,6 +16,11 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 	}
 
 	@Override
+	public String getCategory() {
+		return "Environments";
+	}
+	
+	@Override
 	protected List<Property<?>> getCreateProperties() {
 		return null;
 	}
