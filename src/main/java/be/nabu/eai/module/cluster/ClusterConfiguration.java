@@ -6,9 +6,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "cluster")
-@XmlType(propOrder = { "sharedRepository", "hosts" })
+@XmlType(propOrder = { "sharedRepository", "hosts", "simulate" })
 public class ClusterConfiguration {
 	
+	private boolean simulate;
 	private List<String> hosts;
 	private Boolean sharedRepository;
 	
@@ -24,5 +25,10 @@ public class ClusterConfiguration {
 	public void setSharedRepository(Boolean sharedRepository) {
 		this.sharedRepository = sharedRepository;
 	}
-	
+	public boolean isSimulate() {
+		return simulate;
+	}
+	public void setSimulate(boolean simulate) {
+		this.simulate = simulate;
+	}
 }

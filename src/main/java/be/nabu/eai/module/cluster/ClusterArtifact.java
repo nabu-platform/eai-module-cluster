@@ -15,6 +15,8 @@ import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.server.ServerConnection;
 import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
+import be.nabu.libs.resources.api.ManageableContainer;
+import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceContainer;
 
 public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
@@ -35,13 +37,25 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 		clusterRepository = null;
 	}
 	
+	public boolean isSimulation() {
+		return getConfig().isSimulate();
+	}
+	
 	public ResourceRepository getClusterRepository() {
 		URI mainURI = ResourceUtils.getURI(EAIResourceRepository.getInstance().getRoot().getContainer());
 		if (clusterRepository == null) {
 			synchronized(this) {
 				if (clusterRepository == null) {
 					try {
-						if (getConfiguration().getHosts().size() > 0) {
+						if (isSimulation()) {
+							ResourceContainer<?> privateDirectory = (ResourceContainer<?>) getDirectory().getChild(EAIResourceRepository.PRIVATE);
+							if (privateDirectory == null) {
+								privateDirectory = (ResourceContainer<?>) ((ManageableContainer<?>) getDirectory()).create(EAIResourceRepository.PRIVATE, Resource.CONTENT_TYPE_DIRECTORY);
+							}
+							clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), privateDirectory);
+							clusterRepository.start();
+						}
+						else if (getConfiguration().getHosts().size() > 0) {
 							// we take the first host
 							ServerConnection connection = getConnection(getConfiguration().getHosts().get(0));
 							URI root = connection.getRepositoryRoot();
