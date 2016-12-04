@@ -18,12 +18,16 @@ import be.nabu.libs.resources.ResourceUtils;
 import be.nabu.libs.resources.api.ManageableContainer;
 import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceContainer;
+import be.nabu.utils.bully.BullyClient;
 
 public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 
 	private ResourceRepository clusterRepository;
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Map<String, ServerConnection> connections = new HashMap<String, ServerConnection>();
+	private Map<String, String> hostNames = new HashMap<String, String>();
+	
+	private BullyClient bullyClient;
 	
 	public ClusterArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "cluster.xml", ClusterConfiguration.class);
@@ -39,6 +43,14 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	
 	public boolean isSimulation() {
 		return getConfig().isSimulate();
+	}
+	
+	public boolean isClusterMember() {
+		return bullyClient != null;
+	}
+	
+	public boolean isMaster() {
+		return bullyClient != null && bullyClient.isCurrentMaster();
 	}
 	
 	public ResourceRepository getClusterRepository() {
@@ -78,13 +90,40 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	}
 	
 	public ServerConnection getConnection(String host) throws IOException {
-		if (getConfiguration().getHosts() != null && getConfiguration().getHosts().contains(host)) {
-			if (!connections.containsKey(host)) {
+		return getConnection(host, true);
+	}
+
+	private ServerConnection getConnection(String host, boolean resolveNames) throws IOException {
+		if (getConfiguration().getHosts() != null) {
+			boolean found = false;
+			if (!getConfiguration().getHosts().contains(host)) {
+				if (resolveNames) {
+					Map<String, String> hostNames = getHostNames();
+					for (String potential : hostNames.keySet()) {
+						if (hostNames.get(potential).equals(host)) {
+							host = potential;
+							found = true;
+							break;
+						}
+					}
+				}
+			}
+			else {
+				found = true;
+			}
+			if (found && !connections.containsKey(host)) {
 				synchronized(connections) {
 					if (!connections.containsKey(host)) {
 						int index = host.indexOf(':');
 						// TODO: perhaps set keystore & principal?
-						connections.put(host, new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1))));
+						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						if (getConfig().getConnectionTimeout() != null) {
+							connection.setConnectionTimeout(getConfig().getConnectionTimeout());
+						}
+						if (getConfig().getSocketTimeout() != null) {
+							connection.setSocketTimeout(getConfig().getSocketTimeout());
+						}
+						connections.put(host, connection);
 					}
 				}
 			}
@@ -134,4 +173,35 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 		}
 	}
 	
+	public Map<String, String> getHostNames() {
+		if (getConfig().getHosts() != null) {
+			if (hostNames.size() != getConfig().getHosts().size()) {
+				synchronized(hostNames) {
+					if (hostNames.size() != getConfig().getHosts().size()) {
+						for (String host : getConfig().getHosts()) {
+							if (!hostNames.containsKey(host)) {
+								try {
+									ServerConnection connection = getConnection(host, false);
+									hostNames.put(host, connection.getName());
+								}
+								catch (Exception e) {
+									logger.debug("Could not resolve host name", e);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return new HashMap<String, String>(hostNames);
+	}
+
+	public BullyClient getBullyClient() {
+		return bullyClient;
+	}
+
+	public void setBullyClient(BullyClient bullyClient) {
+		this.bullyClient = bullyClient;
+	}
+
 }

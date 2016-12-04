@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 import javax.jws.WebParam;
 import javax.jws.WebResult;
@@ -19,13 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import be.nabu.eai.module.cluster.ClusterArtifact;
+import be.nabu.eai.repository.EAIResourceRepository;
+import be.nabu.eai.server.Server;
 import be.nabu.libs.services.ListableServiceContext;
 import be.nabu.libs.services.api.ExecutionContext;
+import be.nabu.utils.bully.BullyQueryOverview;
 
 @WebService
 public class Services {
 	
-	private Logger logger = LoggerFactory.getLogger(getClass());
+	private static Logger logger = LoggerFactory.getLogger(Services.class);
 	private ExecutionContext executionContext;
 	
 	public Services() {
@@ -36,10 +40,16 @@ public class Services {
 		this.executionContext = executionContext;
 	}
 	
+	@WebResult(name = "history")
+	public BullyQueryOverview getHistory() throws SocketException {
+		ClusterArtifact ownCluster = getOwnCluster(executionContext);
+		return ownCluster == null ? null : ownCluster.getBullyClient().getHistory();
+	}
+	
 	@WebResult(name = "clusterId")
 	public String getCurrentCluster() {
 		try {
-			ClusterArtifact ownCluster = getOwnCluster();
+			ClusterArtifact ownCluster = getOwnCluster(executionContext);
 			return ownCluster == null ? null : ownCluster.getId();
 		}
 		catch (SocketException e) {
@@ -47,19 +57,57 @@ public class Services {
 		}
 	}
 
-	private ClusterArtifact getOwnCluster() throws SocketException {
-		return getClusterFor(getLocalAddresses());
+	public static ClusterArtifact getOwnCluster(ExecutionContext executionContext) throws SocketException {
+		int port = ((Server) EAIResourceRepository.getInstance().getServiceRunner()).getPort();
+		List<ClusterArtifact> clusters = getClustersFor(getLocalAddresses(), executionContext, port);
+		if (clusters.isEmpty()) {
+			return null;
+		}
+		else if (clusters.size() == 1) {
+			return clusters.get(0);
+		}
+		// multiple, we need to distinguish by server name
+		else {
+			throw new RuntimeException("The server is part of multiple clusters: " + clusters);
+//			for (ClusterArtifact cluster : clusters) {
+//				for (String host : cluster.getConfig().getHosts()) {
+//				}
+//				if (cluster.getHostNames().values().contains(EAIResourceRepository.getInstance().getName())) {
+//					return cluster;
+//				}
+//			}
+		}
 	}
 
-	private ClusterArtifact getClusterFor(List<String> localAddresses) throws SocketException {
+	public static String getOwnHostName(ClusterArtifact cluster) throws SocketException, UnknownHostException {
+		Integer port = ((Server) EAIResourceRepository.getInstance().getServiceRunner()).getPort();
+		List<String> localAddresses = getLocalAddresses();
+		for (String host : cluster.getConfig().getHosts()) {
+			if (localAddresses.contains(getAddress(host))) {
+				int index = host.indexOf(':');
+				if (index < 0) {
+					return host;
+				}
+				else if (host.substring(host.indexOf(':') + 1).equals(port.toString())) {
+					return host;
+				}
+			}
+		}
+		return null;
+	}
+	
+	public static List<ClusterArtifact> getClustersFor(List<String> localAddresses, ExecutionContext executionContext, Integer port) throws SocketException {
 		Collection<ClusterArtifact> artifacts = ((ListableServiceContext) executionContext.getServiceContext()).getArtifacts(ClusterArtifact.class);
+		List<ClusterArtifact> clusters = new ArrayList<ClusterArtifact>();
 		if (artifacts != null && !artifacts.isEmpty()) {
 			for (ClusterArtifact artifact : artifacts) {
 				try {
 					if (artifact.getConfiguration().getHosts() != null) {
 						for (String host : artifact.getConfiguration().getHosts()) {
 							if (localAddresses.contains(getAddress(host))) {
-								return artifact;
+								if (port == null || (host.contains(":") && host.substring(host.indexOf(':') + 1).equals(port.toString()))) {
+									clusters.add(artifact);
+								}
 							}
 						}
 					}
@@ -69,18 +117,18 @@ public class Services {
 				}
 			}
 		}
-		return null;
+		return clusters;
 	}
 	
-	private String getAddress(String host) throws UnknownHostException {
-		InetAddress inetAddress = InetAddress.getByName(host);
+	public static String getAddress(String host) throws UnknownHostException {
+		InetAddress inetAddress = InetAddress.getByName(host.replaceAll(":.*", ""));
 		if (inetAddress == null) {
 			throw new IllegalArgumentException("Unknown host: " + host);
 		}
 		return inetAddress.getHostAddress();
 	}
 	
-	private List<String> getLocalAddresses() throws SocketException {
+	public static List<String> getLocalAddresses() throws SocketException {
 		Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
 		List<String> addresses = new ArrayList<String>();
 		while(networkInterfaces.hasMoreElements()) {
@@ -96,14 +144,16 @@ public class Services {
 
 	@WebResult(name = "peers")
 	public List<String> getPeers() throws IOException {
-		ClusterArtifact ownCluster = getOwnCluster();
+		return getPeers(getOwnCluster(executionContext));
+	}
+
+	public static List<String> getPeers(ClusterArtifact ownCluster) throws SocketException, IOException, UnknownHostException {
 		List<String> peers = new ArrayList<String>();
 		if (ownCluster != null) {
-			List<String> localAddresses = getLocalAddresses();
-			for (String host : ownCluster.getConfiguration().getHosts()) {
-				String address = getAddress(host);
-				if (!localAddresses.contains(address)) {
-					peers.add(address);
+			Map<String, String> hostNames = ownCluster.getHostNames();
+			for (String host : hostNames.keySet()) {
+				if (!hostNames.get(host).equals(EAIResourceRepository.getInstance().getName())) {
+					peers.add(host);
 				}
 			}
 		}

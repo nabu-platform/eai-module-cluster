@@ -38,6 +38,20 @@
 			<artifactId>eai-repository</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>be.nabu.utils</groupId>
+			<artifactId>utils-bully</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>be.nabu.libs.http</groupId>
+			<artifactId>http-server-rest</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>be.nabu.libs.http</groupId>
+			<artifactId>http-client</artifactId>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 
 </project>
