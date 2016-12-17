@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import javax.jws.WebParam;
 import javax.jws.WebResult;
@@ -22,8 +24,16 @@ import org.slf4j.LoggerFactory;
 import be.nabu.eai.module.cluster.ClusterArtifact;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.server.Server;
+import be.nabu.eai.server.ServerConnection;
+import be.nabu.libs.services.DefinedServiceResolverFactory;
 import be.nabu.libs.services.ListableServiceContext;
+import be.nabu.libs.services.api.DefinedService;
 import be.nabu.libs.services.api.ExecutionContext;
+import be.nabu.libs.services.api.ServiceException;
+import be.nabu.libs.services.api.ServiceResult;
+import be.nabu.libs.services.api.ServiceRunner;
+import be.nabu.libs.types.api.ComplexContent;
+import be.nabu.libs.types.mask.MaskedContent;
 import be.nabu.utils.bully.BullyQueryOverview;
 
 @WebService
@@ -167,5 +177,62 @@ public class Services {
 			throw new IllegalArgumentException("The id is not a cluster: " + clusterId);
 		}
 		return artifact.getConfiguration().getHosts();
+	}
+	
+	@WebResult(name = "clusterId")
+	public String getClusterFor(@WebParam(name = "host") @NotNull String host) {
+		Collection<ClusterArtifact> artifacts = ((ListableServiceContext) executionContext.getServiceContext()).getArtifacts(ClusterArtifact.class);
+		for (ClusterArtifact artifact : artifacts) {
+			if (artifact.getConfig().getHosts() != null && artifact.getConfig().getHosts().contains(host)) {
+				return artifact.getId();
+			}
+		}
+		return null;
+	}
+	
+	public Object invoke(@WebParam(name = "host") String host, @WebParam(name = "serviceId") String id, @WebParam(name = "input") Object input, @WebParam(name = "asynchronous") Boolean asynchronous) throws ServiceException, IOException, InterruptedException, ExecutionException {
+		if (id == null) {
+			return id;
+		}
+		DefinedService service = DefinedServiceResolverFactory.getInstance().getResolver().resolve(id);
+		if (service == null) {
+			throw new IllegalArgumentException("Service not found: " + id);
+		}
+		ServiceRunner runner;
+		if (host == null) {
+			runner = EAIResourceRepository.getInstance().getServiceRunner();
+		}
+		else {
+			String clusterId = getClusterFor(host);
+			if (clusterId == null) {
+				throw new IllegalArgumentException("No cluster found that contains the host '" + host + "'");
+			}
+			ClusterArtifact resolve = executionContext.getServiceContext().getResolver(ClusterArtifact.class).resolve(clusterId);
+			if (resolve != null) {
+				ServerConnection connection = resolve.getConnection(host);
+				if (connection == null) {
+					throw new IllegalArgumentException("Can not get connection for host '" + host + "'");
+				}
+				runner = connection.getRemote();
+			}
+			else {
+				throw new IllegalArgumentException("Can not resolve cluster '" + clusterId + "'");
+			}
+		}
+		if (runner == null) {
+			throw new IllegalStateException("No service runner found for host '" + host + "'");
+		}
+		ComplexContent serviceInput = new MaskedContent((ComplexContent) input, service.getServiceInterface().getInputDefinition());
+
+		Future<ServiceResult> run = runner.run(service, executionContext, serviceInput);
+		
+		if (asynchronous == null || !asynchronous) {
+			ServiceResult serviceResult = run.get();
+			if (serviceResult.getException() != null) {
+				throw serviceResult.getException();
+			}
+			return serviceResult.getOutput();
+		}
+		return null;
 	}
 }

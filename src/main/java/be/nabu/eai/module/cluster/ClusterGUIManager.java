@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,7 +27,6 @@ import be.nabu.eai.developer.managers.base.BaseJAXBGUIManager;
 import be.nabu.eai.developer.managers.util.SimpleProperty;
 import be.nabu.eai.developer.managers.util.SimplePropertyUpdater;
 import be.nabu.eai.developer.util.EAIDeveloperUtils;
-import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.resources.RepositoryEntry;
 import be.nabu.libs.property.api.Property;
 import be.nabu.libs.property.api.Value;
@@ -47,7 +47,8 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 	@Override
 	protected List<Property<?>> getCreateProperties() {
 		List<Property<?>> properties = new ArrayList<Property<?>>();
-		properties.add(new SimpleProperty<Boolean>("Simulate?", Boolean.class, true));
+		properties.add(new SimpleProperty<Boolean>("Simulation?", Boolean.class, true));
+		properties.add(new SimpleProperty<URI>("Simulation Location URI", URI.class, false));
 		return properties;
 	}
 
@@ -56,8 +57,11 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 		ClusterArtifact clusterArtifact = new ClusterArtifact(entry.getId(), entry.getContainer(), entry.getRepository());
 		if (values != null) {
 			for (Value<?> value : values) {
-				if (value.getValue() != null && value.getProperty().getName().equals("Simulate?")) {
+				if (value.getValue() != null && value.getProperty().getName().equals("Simulation?")) {
 					clusterArtifact.getConfig().setSimulate((Boolean) value.getValue());
+				}
+				else if (value.getValue() != null && value.getProperty().getName().equals("Simulation Location URI")) {
+					clusterArtifact.getConfig().setUri((URI) value.getValue());
 				}
 			}
 		}
@@ -70,7 +74,7 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 		Iterator<Property<?>> iterator = properties.iterator();
 		while (iterator.hasNext()) {
 			Property<?> next = iterator.next();
-			if (next.getName().equals("simulate")) {
+			if (next.getName().equals("simulate") || next.getName().equals("uri")) {
 				iterator.remove();
 			}
 		}
@@ -89,12 +93,12 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 				@SuppressWarnings({ "unchecked", "rawtypes" })
 				@Override
 				public void handle(ActionEvent arg0) {
-					ResourceContainer<?> privateDirectory = (ResourceContainer<?>) instance.getDirectory().getChild(EAIResourceRepository.PRIVATE);
-					if (privateDirectory != null) {
+					ResourceContainer<?> clusterContainer = instance.getClusterContainer();
+					if (clusterContainer != null) {
 						ByteArrayOutputStream output = new ByteArrayOutputStream();
 						ZipOutputStream zip = new ZipOutputStream(output);
 						try {
-							ResourceUtils.zip(privateDirectory, zip, false);
+							ResourceUtils.zip(clusterContainer, zip, false);
 							zip.close();
 							byte [] content = output.toByteArray();
 							SimpleProperty<File> fileProperty = new SimpleProperty<File>("File", File.class, true);

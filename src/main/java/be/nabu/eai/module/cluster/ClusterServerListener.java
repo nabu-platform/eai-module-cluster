@@ -21,7 +21,10 @@ import be.nabu.libs.http.client.connections.PlainConnectionHandler;
 import be.nabu.libs.http.core.CustomCookieStore;
 import be.nabu.libs.http.server.HTTPServerUtils;
 import be.nabu.utils.bully.BullyClient;
+import be.nabu.utils.bully.MasterController;
 
+// TODO: add an endpoint where new servers can automatically register themselves within the cluster
+// add the hosts to the cluster module itself
 public class ClusterServerListener implements ServerListener {
 
 	private Logger logger = LoggerFactory.getLogger(getClass());
@@ -43,7 +46,12 @@ public class ClusterServerListener implements ServerListener {
 					else {
 						logger.info("Identity within cluster: " + self);
 						DefaultHTTPClient httpClient = new DefaultHTTPClient(new PlainConnectionHandler(null, 60*1000, 60*1000*2), new SPIAuthenticationHandler(), new CookieManager(new CustomCookieStore(), CookiePolicy.ACCEPT_ALL), false);
-						bullyClient = new BullyClient(self, "/cluster", null, 60l*1000, httpClient, null, false, cluster.getConfig().getHosts());
+						bullyClient = new BullyClient(self, "/cluster", new MasterController() {
+							@Override
+							public void setMaster(String master) {
+								cluster.setMaster(master);								
+							}
+						}, 60l*1000, httpClient, null, false, cluster.getConfig().getHosts());
 						cluster.setBullyClient(bullyClient);
 						// register the listener
 						EventSubscription<HTTPRequest, HTTPResponse> subscribe = httpServer.getDispatcher().subscribe(HTTPRequest.class, bullyClient.newHandler());

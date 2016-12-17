@@ -2,12 +2,15 @@ package be.nabu.eai.module.cluster;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import be.nabu.eai.module.cluster.api.MasterSwitcher;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.api.ResourceRepository;
@@ -15,8 +18,6 @@ import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.server.ServerConnection;
 import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
-import be.nabu.libs.resources.api.ManageableContainer;
-import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.bully.BullyClient;
 
@@ -26,8 +27,10 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Map<String, ServerConnection> connections = new HashMap<String, ServerConnection>();
 	private Map<String, String> hostNames = new HashMap<String, String>();
+	private List<MasterSwitcher> switchers = new ArrayList<MasterSwitcher>();
 	
 	private BullyClient bullyClient;
+	private String master;
 	
 	public ClusterArtifact(String id, ResourceContainer<?> directory, Repository repository) {
 		super(id, directory, repository, "cluster.xml", ClusterConfiguration.class);
@@ -52,6 +55,38 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	public boolean isMaster() {
 		return bullyClient != null && bullyClient.isCurrentMaster();
 	}
+
+	public String getMaster() {
+		return master;
+	}
+
+	void setMaster(String master) {
+		// only trigger on actual change
+		if ((master == null && this.master != null) || (master != null && !master.equals(this.master))) {
+			synchronized(switchers) {
+				for (MasterSwitcher switcher : switchers) {
+					switcher.switchMaster(master, isMaster());
+				}
+			}
+			this.master = master;
+		}
+	}
+	
+	public void addSwitcher(MasterSwitcher switcher) {
+		if (!switchers.contains(switcher)) {
+			synchronized(switchers) {
+				switchers.add(switcher);
+			}
+		}
+	}
+	
+	public void removeSwitcher(MasterSwitcher switcher) {
+		if (switchers.contains(switcher)) {
+			synchronized(switchers) {
+				switchers.remove(switcher);
+			}
+		}
+	}
 	
 	public ResourceRepository getClusterRepository() {
 		URI mainURI = ResourceUtils.getURI(EAIResourceRepository.getInstance().getRoot().getContainer());
@@ -60,11 +95,8 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 				if (clusterRepository == null) {
 					try {
 						if (isSimulation()) {
-							ResourceContainer<?> privateDirectory = (ResourceContainer<?>) getDirectory().getChild(EAIResourceRepository.PRIVATE);
-							if (privateDirectory == null) {
-								privateDirectory = (ResourceContainer<?>) ((ManageableContainer<?>) getDirectory()).create(EAIResourceRepository.PRIVATE, Resource.CONTENT_TYPE_DIRECTORY);
-							}
-							clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), privateDirectory);
+							ResourceContainer<?> clusterContainer = getClusterContainer();
+							clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), clusterContainer);
 							clusterRepository.start();
 						}
 						else if (getConfiguration().getHosts().size() > 0) {
@@ -87,6 +119,17 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 			}
 		}
 		return clusterRepository;
+	}
+
+	public ResourceContainer<?> getClusterContainer() {
+		try {
+			return getConfig().getUri() == null
+				? ResourceUtils.mkdirs(getDirectory(), EAIResourceRepository.PRIVATE)
+				: ResourceUtils.mkdir(getConfig().getUri(), null);
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public ServerConnection getConnection(String host) throws IOException {
