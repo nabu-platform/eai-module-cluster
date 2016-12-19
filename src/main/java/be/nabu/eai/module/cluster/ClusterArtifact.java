@@ -97,6 +97,8 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 						if (isSimulation()) {
 							ResourceContainer<?> clusterContainer = getClusterContainer();
 							clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), clusterContainer);
+							// this assumes the current environment has the required modules and the target environment has them as well!
+							((RemoteRepository) clusterRepository).setAllowLocalLookup(true);
 							clusterRepository.start();
 						}
 						else if (getConfiguration().getHosts().size() > 0) {
