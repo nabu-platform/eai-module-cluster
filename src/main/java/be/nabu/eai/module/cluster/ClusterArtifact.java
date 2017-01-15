@@ -99,6 +99,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 							clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), clusterContainer);
 							// this assumes the current environment has the required modules and the target environment has them as well!
 							((RemoteRepository) clusterRepository).setAllowLocalLookup(true);
+							((RemoteRepository) clusterRepository).setLocalLookupRegex(getConfig().getLocalLookupRegex());
 							clusterRepository.start();
 						}
 						else if (getConfiguration().getHosts().size() > 0) {

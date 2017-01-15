@@ -74,7 +74,7 @@ public class ClusterGUIManager extends BaseJAXBGUIManager<ClusterConfiguration, 
 		Iterator<Property<?>> iterator = properties.iterator();
 		while (iterator.hasNext()) {
 			Property<?> next = iterator.next();
-			if (next.getName().equals("simulate") || next.getName().equals("uri")) {
+			if (next.getName().equals("simulate") || next.getName().equals("uri") || (!instance.getConfig().isSimulate() && next.getName().equals("localLookupRegex"))) {
 				iterator.remove();
 			}
 		}

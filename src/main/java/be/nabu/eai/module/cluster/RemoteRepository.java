@@ -45,6 +45,7 @@ public class RemoteRepository implements ResourceRepository {
 	private Map<String, List<String>> references = new HashMap<String, List<String>>(), dependencies = new HashMap<String, List<String>>();
 	private boolean isLoading;
 	private boolean allowLocalLookup;
+	private String localLookupRegex;
 
 	public RemoteRepository(ResourceRepository local, ResourceContainer<?> root) {
 		this.local = local;
@@ -59,7 +60,7 @@ public class RemoteRepository implements ResourceRepository {
 	@Override
 	public Entry getEntry(String id) {
 		Entry entry = EAIRepositoryUtils.getEntry(getRoot(), id);
-		if (entry == null && allowLocalLookup) {
+		if (entry == null && allowLocalLookup && (localLookupRegex == null || id.matches(localLookupRegex))) {
 			entry = local.getEntry(id);
 		}
 		return entry;
@@ -78,7 +79,7 @@ public class RemoteRepository implements ResourceRepository {
 	@Override
 	public Node getNode(String id) {
 		Node node = EAIRepositoryUtils.getNode(this, id);
-		if (node == null && allowLocalLookup) {
+		if (node == null && allowLocalLookup && (localLookupRegex == null || id.matches(localLookupRegex))) {
 			node = local.getNode(id);
 		}
 		return node;
@@ -206,7 +207,7 @@ public class RemoteRepository implements ResourceRepository {
 		if (references.containsKey(id)) {
 			return new ArrayList<String>(references.get(id));
 		}
-		else if (allowLocalLookup) {
+		else if (allowLocalLookup && (localLookupRegex == null || id.matches(localLookupRegex))) {
 			return local.getReferences(id);
 		}
 		else {
@@ -219,7 +220,7 @@ public class RemoteRepository implements ResourceRepository {
 		if (dependencies.containsKey(id)) {
 			return new ArrayList<String>(dependencies.get(id));
 		}
-		else if (allowLocalLookup) {
+		else if (allowLocalLookup && (localLookupRegex == null || id.matches(localLookupRegex))) {
 			return local.getDependencies(id);
 		}
 		else {
@@ -331,7 +332,7 @@ public class RemoteRepository implements ResourceRepository {
 	@Override
 	public Artifact resolve(String id) {
 		Artifact resolve = EAIRepositoryUtils.resolve(this, id);
-		if (resolve == null && allowLocalLookup) {
+		if (resolve == null && allowLocalLookup && (localLookupRegex == null || id.matches(localLookupRegex))) {
 			resolve = local.resolve(id);
 		}
 		return resolve;
@@ -488,7 +489,9 @@ public class RemoteRepository implements ResourceRepository {
 			}
 			for (T artifact : local.getArtifacts(ifaceClass)) {
 				if (!(artifact instanceof Artifact) || !ids.contains(((Artifact) artifact).getId())) {
-					results.add(artifact);
+					if (localLookupRegex == null || ((Artifact) artifact).getId().matches(localLookupRegex)) {
+						results.add(artifact);
+					}
 				}
 			}
 		}
@@ -499,6 +502,14 @@ public class RemoteRepository implements ResourceRepository {
 	public EventDispatcher getMetricsDispatcher() {
 		// no metrics for remote repository
 		return null;
+	}
+
+	public String getLocalLookupRegex() {
+		return localLookupRegex;
+	}
+
+	public void setLocalLookupRegex(String localLookupRegex) {
+		this.localLookupRegex = localLookupRegex;
 	}
 
 }

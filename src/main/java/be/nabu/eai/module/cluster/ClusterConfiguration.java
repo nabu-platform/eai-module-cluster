@@ -7,7 +7,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "cluster")
-@XmlType(propOrder = { "sharedRepository", "hosts", "simulate", "uri", "connectionTimeout", "socketTimeout" })
+@XmlType(propOrder = { "sharedRepository", "hosts", "simulate", "uri", "connectionTimeout", "socketTimeout", "localLookupRegex" })
 public class ClusterConfiguration {
 	/**
 	 * The uri where the simulation data (if any) is stored
@@ -17,6 +17,7 @@ public class ClusterConfiguration {
 	private List<String> hosts;
 	private Boolean sharedRepository;
 	private Integer connectionTimeout, socketTimeout;
+	private String localLookupRegex;
 	
 	public List<String> getHosts() {
 		return hosts;
@@ -54,4 +55,11 @@ public class ClusterConfiguration {
 	public void setUri(URI uri) {
 		this.uri = uri;
 	}
+	public String getLocalLookupRegex() {
+		return localLookupRegex;
+	}
+	public void setLocalLookupRegex(String localLookupRegex) {
+		this.localLookupRegex = localLookupRegex;
+	}
+	
 }
