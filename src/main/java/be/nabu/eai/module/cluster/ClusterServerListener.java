@@ -70,4 +70,18 @@ public class ClusterServerListener implements ServerListener {
 		}
 	}
 
+	/**
+	 * Ideally this should be the last listener of the bunch
+	 * Everything else should start (in a cluster) being inactive and only activated once the election process is completed
+	 */
+	@Override
+	public Phase getPhase() {
+		return Phase.ARTIFACTS_STARTED;
+	}
+
+	@Override
+	public Priority getPriority() {
+		return Priority.LOW;
+	}
+	
 }

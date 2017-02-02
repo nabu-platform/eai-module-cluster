@@ -75,7 +75,9 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	public void addSwitcher(MasterSwitcher switcher) {
 		if (!switchers.contains(switcher)) {
 			synchronized(switchers) {
-				switchers.add(switcher);
+				if (!switchers.contains(switcher)) {
+					switchers.add(switcher);
+				}
 			}
 		}
 	}
