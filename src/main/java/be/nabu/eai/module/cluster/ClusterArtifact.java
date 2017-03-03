@@ -53,7 +53,8 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	}
 	
 	public boolean isMaster() {
-		return bullyClient != null && bullyClient.isCurrentMaster();
+		// if the cluster has no hosts or just the one, you are the master of it
+		return getConfig().getHosts() == null || getConfig().getHosts().isEmpty() || getConfig().getHosts().size() == 1 || (bullyClient != null && bullyClient.isCurrentMaster());
 	}
 
 	public String getMaster() {
