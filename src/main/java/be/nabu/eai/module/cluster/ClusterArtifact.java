@@ -49,12 +49,12 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	}
 	
 	public boolean isClusterMember() {
-		return bullyClient != null;
+		return getBullyClient() != null;
 	}
 	
 	public boolean isMaster() {
 		// if the cluster has no hosts or just the one, you are the master of it
-		return getConfig().getHosts() == null || getConfig().getHosts().isEmpty() || getConfig().getHosts().size() == 1 || (bullyClient != null && bullyClient.isCurrentMaster());
+		return getConfig().getHosts() == null || getConfig().getHosts().isEmpty() || getConfig().getHosts().size() == 1 || (getBullyClient() != null && getBullyClient().isCurrentMaster());
 	}
 
 	public String getMaster() {
@@ -246,6 +246,9 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 	}
 
 	public BullyClient getBullyClient() {
+		if (bullyClient == null && ClusterServerListener.getInstance() != null) {
+			bullyClient = ClusterServerListener.getInstance().getBullyClient();
+		}
 		return bullyClient;
 	}
 

@@ -30,6 +30,12 @@ public class ClusterServerListener implements ServerListener {
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private BullyClient bullyClient;
 	
+	private static ClusterServerListener instance;
+	
+	public static ClusterServerListener getInstance() {
+		return instance;
+	}
+	
 	@Override
 	public void listen(Server server, HTTPServer httpServer) {
 		try {
@@ -58,6 +64,8 @@ public class ClusterServerListener implements ServerListener {
 						subscribe.filter(HTTPServerUtils.limitToPath("/cluster/bully"));
 						// start elections!
 						bullyClient.scheduleElection(true);
+						// register this instance so we can access it statically
+						instance = this;
 					}
 				}
 			}
@@ -82,6 +90,10 @@ public class ClusterServerListener implements ServerListener {
 	@Override
 	public Priority getPriority() {
 		return Priority.LOW;
+	}
+
+	public BullyClient getBullyClient() {
+		return bullyClient;
 	}
 	
 }
