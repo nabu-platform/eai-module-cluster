@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import nabu.misc.cluster.Services;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,19 +17,22 @@ import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.api.ResourceRepository;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
+import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.eai.server.ServerConnection;
+import be.nabu.libs.artifacts.api.StartableArtifact;
+import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.bully.BullyClient;
 
-public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
+public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implements StartableArtifact, StoppableArtifact {
 
 	private ResourceRepository clusterRepository;
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private Map<String, ServerConnection> connections = new HashMap<String, ServerConnection>();
 	private Map<String, String> hostNames = new HashMap<String, String>();
-	private List<MasterSwitcher> switchers = new ArrayList<MasterSwitcher>();
+	private static List<MasterSwitcher> switchers = new ArrayList<MasterSwitcher>();
 	
 	private BullyClient bullyClient;
 	private String master;
@@ -254,6 +259,28 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> {
 
 	public void setBullyClient(BullyClient bullyClient) {
 		this.bullyClient = bullyClient;
+	}
+
+	@Override
+	public void start() throws IOException {
+		ClusterArtifact ownCluster = Services.getOwnCluster(getRepository().newExecutionContext(SystemPrincipal.ROOT));
+		if (ownCluster != null && ownCluster.equals(this) && getConfig().getHosts() != null && getConfig().getHosts().size() > 1) {
+			if (ClusterServerListener.getInstance() != null) {
+				ClusterServerListener.getInstance().setCluster(this);
+			}
+		}
+	}
+
+	@Override
+	public boolean isStarted() {
+		return ClusterServerListener.getInstance() != null && equals(ClusterServerListener.getInstance().getCluster());
+	}
+
+	@Override
+	public void stop() throws IOException {
+		if (ClusterServerListener.getInstance() != null && equals(ClusterServerListener.getInstance().getCluster())) {
+			ClusterServerListener.getInstance().setCluster(null);
+		}
 	}
 
 }

@@ -29,6 +29,7 @@ public class ClusterServerListener implements ServerListener {
 
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private BullyClient bullyClient;
+	private ClusterArtifact cluster;
 	
 	private static ClusterServerListener instance;
 	
@@ -39,7 +40,7 @@ public class ClusterServerListener implements ServerListener {
 	@Override
 	public void listen(Server server, HTTPServer httpServer) {
 		try {
-			final ClusterArtifact cluster = Services.getOwnCluster(server.getRepository().newExecutionContext(SystemPrincipal.ROOT));
+			cluster = Services.getOwnCluster(server.getRepository().newExecutionContext(SystemPrincipal.ROOT));
 			// only need to care if we are actually in a cluster
 			if (cluster != null) {
 				logger.info("Part of cluster '" + cluster.getId() + "' with " + cluster.getConfig().getHosts().size() + " hosts");
@@ -55,7 +56,9 @@ public class ClusterServerListener implements ServerListener {
 						bullyClient = new BullyClient(self, "/cluster", new MasterController() {
 							@Override
 							public void setMaster(String master) {
-								cluster.setMaster(master);								
+								if (getCluster() != null) {
+									getCluster().setMaster(master);
+								}
 							}
 						}, 60l*1000, httpClient, null, false, cluster.getConfig().getHosts());
 						cluster.setBullyClient(bullyClient);
@@ -94,6 +97,21 @@ public class ClusterServerListener implements ServerListener {
 
 	public BullyClient getBullyClient() {
 		return bullyClient;
+	}
+
+	public ClusterArtifact getCluster() {
+		return cluster;
+	}
+
+	public void setCluster(ClusterArtifact cluster) {
+		if (cluster != null) {
+			cluster.setBullyClient(bullyClient);
+			String currentMaster = bullyClient.getCurrentMaster();
+			if (currentMaster != null) {
+				cluster.setMaster(currentMaster);
+			}
+		}
+		this.cluster = cluster;
 	}
 	
 }

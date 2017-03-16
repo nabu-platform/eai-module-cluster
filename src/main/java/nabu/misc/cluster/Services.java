@@ -66,6 +66,31 @@ public class Services {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	@WebResult(name = "master")
+	public String getMaster(@WebParam(name = "block") Boolean block) throws SocketException, InterruptedException, ExecutionException {
+		ClusterArtifact ownCluster = Services.getOwnCluster(executionContext);
+		if (ownCluster == null || ownCluster.getConfig().getHosts() == null || ownCluster.getConfig().getHosts().size() <= 1) {
+			return null;
+		}
+		if (block != null && block) {
+			Future<String> master = ownCluster.getBullyClient().getMaster();
+			return master.get();
+		}
+		else {
+			return ownCluster.getMaster();
+		}
+	}
+	
+	@WebResult(name = "started")
+	public Boolean scheduleElections() throws SocketException {
+		ClusterArtifact ownCluster = Services.getOwnCluster(executionContext);
+		if (ownCluster == null || ownCluster.getConfig().getHosts() == null || ownCluster.getConfig().getHosts().size() <= 1) {
+			return false;
+		}
+		ownCluster.getBullyClient().scheduleElection(true);
+		return true;
+	}
 
 	public static ClusterArtifact getOwnCluster(ExecutionContext executionContext) throws SocketException {
 		int port = ((Server) EAIResourceRepository.getInstance().getServiceRunner()).getPort();
