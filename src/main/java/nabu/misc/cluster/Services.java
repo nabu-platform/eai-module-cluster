@@ -53,7 +53,7 @@ public class Services {
 	@WebResult(name = "history")
 	public BullyQueryOverview getHistory() throws SocketException {
 		ClusterArtifact ownCluster = getOwnCluster(executionContext);
-		return ownCluster == null ? null : ownCluster.getBullyClient().getHistory();
+		return ownCluster == null || ownCluster.getBullyClient() == null ? null : ownCluster.getBullyClient().getHistory();
 	}
 	
 	@WebResult(name = "clusterId")
