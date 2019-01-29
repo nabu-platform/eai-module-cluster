@@ -73,7 +73,7 @@ public class ClusterServerListener implements ServerListener {
 				}
 			}
 			else {
-				logger.info("This server is not part of a cluster");
+				//logger.info("This server is not part of a cluster");
 			}
 		}
 		catch (Exception e) {
