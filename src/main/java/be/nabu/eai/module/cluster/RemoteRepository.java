@@ -512,4 +512,10 @@ public class RemoteRepository implements ResourceRepository {
 		this.localLookupRegex = localLookupRegex;
 	}
 
+	@Override
+	public EventDispatcher getComplexEventDispatcher() {
+		// no complex events for remote repository
+		return null;
+	}
+
 }

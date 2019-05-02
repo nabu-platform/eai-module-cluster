@@ -1,6 +1,7 @@
 package be.nabu.eai.module.cluster;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import be.nabu.eai.module.cluster.api.MasterSwitcher;
 import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.api.ResourceRepository;
+import be.nabu.eai.repository.api.cluster.ClusterMember;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.eai.server.ServerConnection;
@@ -26,7 +28,7 @@ import be.nabu.libs.resources.ResourceUtils;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.bully.BullyClient;
 
-public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implements StartableArtifact, StoppableArtifact {
+public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implements StartableArtifact, StoppableArtifact, be.nabu.eai.repository.api.cluster.ClusterArtifact {
 
 	private ResourceRepository clusterRepository;
 	private Logger logger = LoggerFactory.getLogger(getClass());
@@ -281,6 +283,36 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 		if (ClusterServerListener.getInstance() != null && equals(ClusterServerListener.getInstance().getCluster())) {
 			ClusterServerListener.getInstance().setCluster(null);
 		}
+	}
+
+	// forward compatible with new cluster logic
+	@Override
+	public List<ClusterMember> getMembers() {
+		List<ClusterMember> members = new ArrayList<ClusterMember>();
+		if (getConfig().getHosts() != null) {
+			for (String host : getConfig().getHosts()) {
+				// can't resolve port
+				int index = host.indexOf(':');
+				int port = 80;
+				if (index >= 0) {
+					port = Integer.parseInt(host.substring(index + 1));
+					host = host.substring(0, index);
+				}
+				try {
+					final InetSocketAddress address = new InetSocketAddress(host, port); 
+					members.add(new ClusterMember() {
+						@Override
+						public InetSocketAddress getAddress() {
+							return address;
+						}
+					});
+				}
+				catch (Exception e) {
+					logger.error("Could not list member: " + host, e);
+				}
+			}
+		}
+		return members;
 	}
 
 }
