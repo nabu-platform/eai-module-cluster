@@ -18,6 +18,8 @@ import be.nabu.eai.repository.EAIResourceRepository;
 import be.nabu.eai.repository.api.Repository;
 import be.nabu.eai.repository.api.ResourceRepository;
 import be.nabu.eai.repository.api.cluster.ClusterMember;
+import be.nabu.eai.repository.api.cluster.ClusterMemberSubscriber;
+import be.nabu.eai.repository.api.cluster.ClusterMemberSubscription;
 import be.nabu.eai.repository.artifacts.jaxb.JAXBArtifact;
 import be.nabu.eai.repository.util.SystemPrincipal;
 import be.nabu.eai.server.ServerConnection;
@@ -313,6 +315,17 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 			}
 		}
 		return members;
+	}
+
+	// there is no dynamic member registration
+	@Override
+	public ClusterMemberSubscription addMembershipListener(ClusterMemberSubscriber subscriber) {
+		return new ClusterMemberSubscription() {
+			@Override
+			public void unsubscribe() {
+				// do nothing
+			}
+		};
 	}
 
 }
