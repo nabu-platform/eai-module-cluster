@@ -122,7 +122,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 								clusterRepository = EAIResourceRepository.getInstance();
 							}
 							else {
-								clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), (ResourceContainer<?>) ResourceFactory.getInstance().resolve(root, null));
+								clusterRepository = new RemoteRepository(EAIResourceRepository.getInstance(), (ResourceContainer<?>) ResourceFactory.getInstance().resolve(root, connection.getPrincipal()));
 								clusterRepository.start();
 							}
 						}
