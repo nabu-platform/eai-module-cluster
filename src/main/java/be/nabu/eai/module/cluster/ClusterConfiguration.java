@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlType;
 import be.nabu.eai.api.EnvironmentSpecific;
 
 @XmlRootElement(name = "cluster")
-@XmlType(propOrder = { "sharedRepository", "hosts", "simulate", "uri", "connectionTimeout", "socketTimeout", "localLookupRegex" })
+@XmlType(propOrder = { "sharedRepository", "hosts", "simulate", "uri", "connectionTimeout", "socketTimeout", "localLookupRegex", "secure" })
 public class ClusterConfiguration {
 	/**
 	 * The uri where the simulation data (if any) is stored
@@ -20,6 +20,7 @@ public class ClusterConfiguration {
 	private Boolean sharedRepository;
 	private Integer connectionTimeout, socketTimeout;
 	private String localLookupRegex;
+	private Boolean secure;
 	
 	@EnvironmentSpecific
 	public List<String> getHosts() {
@@ -65,6 +66,12 @@ public class ClusterConfiguration {
 	}
 	public void setLocalLookupRegex(String localLookupRegex) {
 		this.localLookupRegex = localLookupRegex;
+	}
+	public Boolean getSecure() {
+		return secure;
+	}
+	public void setSecure(Boolean secure) {
+		this.secure = secure;
 	}
 	
 }

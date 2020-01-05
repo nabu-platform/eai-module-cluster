@@ -3,10 +3,13 @@ package be.nabu.eai.module.cluster;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.SSLContext;
 
 import nabu.misc.cluster.Services;
 
@@ -174,7 +177,13 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 					if (!connections.containsKey(host)) {
 						int index = host.indexOf(':');
 						// TODO: perhaps set keystore & principal?
-						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						ServerConnection connection;
+						try {
+							connection = new ServerConnection(getConfig().getSecure() != null && getConfig().getSecure() ? SSLContext.getDefault() : null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)), getConfig().getSecure() != null && getConfig().getSecure());
+						}
+						catch (Exception e) {
+							throw new RuntimeException(e);
+						}
 						if (getConfig().getConnectionTimeout() != null) {
 							connection.setConnectionTimeout(getConfig().getConnectionTimeout());
 						}
