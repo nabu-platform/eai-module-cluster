@@ -6,10 +6,11 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
+import be.nabu.eai.api.Comment;
 import be.nabu.eai.api.EnvironmentSpecific;
 
 @XmlRootElement(name = "cluster")
-@XmlType(propOrder = { "sharedRepository", "hosts", "simulate", "uri", "connectionTimeout", "socketTimeout", "localLookupRegex", "secure" })
+@XmlType(propOrder = { "sharedRepository", "hosts", "path", "simulate", "uri", "connectionTimeout", "socketTimeout", "localLookupRegex", "secure" })
 public class ClusterConfiguration {
 	/**
 	 * The uri where the simulation data (if any) is stored
@@ -19,7 +20,7 @@ public class ClusterConfiguration {
 	private List<String> hosts;
 	private Boolean sharedRepository;
 	private Integer connectionTimeout, socketTimeout;
-	private String localLookupRegex;
+	private String localLookupRegex, path;
 	private Boolean secure;
 	
 	@EnvironmentSpecific
@@ -73,5 +74,11 @@ public class ClusterConfiguration {
 	public void setSecure(Boolean secure) {
 		this.secure = secure;
 	}
-	
+	@Comment(title = "If the server is not accessible on the root but on some other path, configure that here (not relevant for simulations)")
+	public String getPath() {
+		return path;
+	}
+	public void setPath(String path) {
+		this.path = path;
+	}
 }

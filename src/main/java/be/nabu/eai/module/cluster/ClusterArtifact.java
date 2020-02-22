@@ -3,7 +3,6 @@ package be.nabu.eai.module.cluster;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +29,7 @@ import be.nabu.libs.artifacts.api.StartableArtifact;
 import be.nabu.libs.artifacts.api.StoppableArtifact;
 import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
+import be.nabu.libs.resources.URIUtils;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.utils.bully.BullyClient;
 
@@ -179,7 +179,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 						// TODO: perhaps set keystore & principal?
 						ServerConnection connection;
 						try {
-							connection = new ServerConnection(getConfig().getSecure() != null && getConfig().getSecure() ? SSLContext.getDefault() : null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)), getConfig().getSecure() != null && getConfig().getSecure());
+							connection = new ServerConnection(getConfig().getSecure() != null && getConfig().getSecure() ? SSLContext.getDefault() : null, null, index < 0 ? host : host.substring(0, index), index < 0 ? (getConfig().getSecure() ? 443 : 5555) : Integer.parseInt(host.substring(index + 1)), getConfig().getSecure() != null && getConfig().getSecure(), getConfig().getPath() == null ? "" : URIUtils.encodeURI(getConfig().getPath()));
 						}
 						catch (Exception e) {
 							throw new RuntimeException(e);
@@ -205,7 +205,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 					logger.info("Reloading all on " + host);
 					try {
 						int index = host.indexOf(':');
-						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						ServerConnection connection = new ServerConnection(getConfig().getSecure() != null && getConfig().getSecure() ? SSLContext.getDefault() : null, null, index < 0 ? host : host.substring(0, index), index < 0 ? (getConfig().getSecure() ? 443 : 5555) : Integer.parseInt(host.substring(index + 1)), getConfig().getSecure() != null && getConfig().getSecure(), getConfig().getPath() == null ? "" : URIUtils.encodeURI(getConfig().getPath()));
 						connection.getRemote().reloadAll();
 					}
 					catch (Exception e) {
@@ -226,7 +226,7 @@ public class ClusterArtifact extends JAXBArtifact<ClusterConfiguration> implemen
 					logger.info("Reloading " + id + " on " + host);
 					try {
 						int index = host.indexOf(':');
-						ServerConnection connection = new ServerConnection(null, null, index < 0 ? host : host.substring(0, index), index < 0 ? 5555 : Integer.parseInt(host.substring(index + 1)));
+						ServerConnection connection = new ServerConnection(getConfig().getSecure() != null && getConfig().getSecure() ? SSLContext.getDefault() : null, null, index < 0 ? host : host.substring(0, index), index < 0 ? (getConfig().getSecure() ? 443 : 5555) : Integer.parseInt(host.substring(index + 1)), getConfig().getSecure() != null && getConfig().getSecure(), getConfig().getPath() == null ? "" : URIUtils.encodeURI(getConfig().getPath()));
 						connection.getRemote().reload(id);
 					}
 					catch (Exception e) {
