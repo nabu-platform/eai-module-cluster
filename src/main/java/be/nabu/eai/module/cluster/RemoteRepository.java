@@ -107,7 +107,8 @@ public class RemoteRepository implements ResourceRepository {
 		reload(id, true);
 	}
 	
-	private void reload(String id, boolean recursiveReload) {
+	@Override
+	public void reload(String id, boolean recursiveReload) {
 		logger.info("Reloading: " + id);
 		if (recursiveReload) {
 			getEventDispatcher().fire(new RepositoryEvent(RepositoryState.RELOAD, false), this);
